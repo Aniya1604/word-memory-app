@@ -1,0 +1,215 @@
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --gray-1: #f2f2f2;
+  --gray-2: #dfdfdf;
+  --gray-3: #c9c9c9;
+  --accent: #f06d83;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.app {
+  min-height: 100vh;
+  padding: 24px 20px 100px;
+}
+
+.page {
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+.page-title {
+  margin: 0 0 16px;
+  font-size: 48px;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.year-text {
+  font-size: 28px;
+  margin-bottom: 18px;
+}
+
+.month-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.control-btn {
+  border: 1px solid #d6d6d6;
+  background: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.month-label {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 560px;
+}
+
+.weekday {
+  text-align: center;
+  font-size: 14px;
+  color: #6e6e6e;
+}
+
+.day-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.day-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #e1e1e1;
+  background: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.day-btn.has-words {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.day-btn:disabled {
+  visibility: hidden;
+}
+
+.detail-box {
+  margin-top: 24px;
+  max-width: 560px;
+  border-top: 1px solid #e7e7e7;
+  padding-top: 16px;
+}
+
+.section-title {
+  font-size: 24px;
+  margin: 12px 0;
+}
+
+.remember-layout {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.remember-left,
+.remember-right {
+  flex: 1;
+}
+
+.remember-text {
+  font-size: 22px;
+  margin-bottom: 12px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1px solid #d8d8d8;
+  padding: 10px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.add-btn,
+.review-btn {
+  border: 1px solid #cfcfcf;
+  background: #fff;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.list-title {
+  font-size: 28px;
+  text-transform: lowercase;
+  margin: 0 0 10px;
+}
+
+.review-card {
+  border: 1px solid #e1e1e1;
+  padding: 14px;
+  margin-bottom: 12px;
+  max-width: 640px;
+}
+
+.review-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--gray-1);
+  border-top: 1px solid #d8d8d8;
+}
+
+.nav-tab {
+  border: 0;
+  border-right: 1px solid #d8d8d8;
+  background: var(--gray-1);
+  padding: 16px 8px;
+  font-size: 18px;
+  text-transform: lowercase;
+  cursor: pointer;
+}
+
+.nav-tab:last-child {
+  border-right: 0;
+}
+
+.nav-tab.active {
+  background: var(--gray-2);
+}
+
+.empty-text {
+  color: #3d3d3d;
+}
+
+@media (max-width: 900px) {
+  .page-title {
+    font-size: 40px;
+  }
+
+  .remember-layout {
+    flex-direction: column;
+  }
+}
