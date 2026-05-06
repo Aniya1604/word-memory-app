@@ -57,6 +57,16 @@ body {
   align-items: center;
 }
 
+#page-date.active {
+  overflow-y: auto;
+}
+
+.date-page-content {
+  justify-content: flex-start;
+  padding-top: 8px;
+  padding-bottom: calc(var(--bottom-nav-height) + 24px);
+}
+
 .review-content {
   display: flex;
   flex-direction: column;

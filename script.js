@@ -219,9 +219,17 @@ function renderDateDetail() {
   if (selectedWords.length === 0) {
     content += '<p class="empty-text">Sorry, you didn\'t save any words on that day.</p>';
   } else {
-    content += '<ol>';
-    selectedWords.forEach((word) => {
-      content += `<li>${word.text}${word.meaning ? ` - ${word.meaning}` : ''}</li>`;
+    content += '<ol class="today-word-list">';
+    selectedWords.forEach((word, index) => {
+      content += `
+        <li class="today-word-item">
+          <span class="today-word-main">
+            <span class="today-word-number">${index + 1}.</span>
+            <span class="today-word-text">${word.text}${word.meaning ? ` - ${word.meaning}` : ''}</span>
+          </span>
+          <button class="delete-word-btn" data-id="${word.id}" aria-label="Delete word">&times;</button>
+        </li>
+      `;
     });
     content += '</ol>';
   }
@@ -233,7 +241,7 @@ function renderDateDetail() {
 function renderDatePage() {
   const now = new Date();
   pageDate.innerHTML = `
-    <div class="page-content">
+    <div class="page-content date-page-content">
       <div class="date-content">
         <h1 class="page-title">date</h1>
         <div class="year-text">${now.getFullYear()}</div>
@@ -245,6 +253,12 @@ function renderDatePage() {
 
   const calendarWrap = document.getElementById('calendar-wrap');
   renderCalendar(calendarWrap);
+
+  pageDate.querySelectorAll('.delete-word-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      deleteWord(button.dataset.id);
+    });
+  });
 }
 
 function renderTodaysWords() {
