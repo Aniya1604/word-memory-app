@@ -233,10 +233,14 @@ function renderDateDetail() {
 function renderDatePage() {
   const now = new Date();
   pageDate.innerHTML = `
-    <h1 class="page-title">date</h1>
-    <div class="year-text">${now.getFullYear()}</div>
-    <div id="calendar-wrap"></div>
-    ${renderDateDetail()}
+    <div class="page-content">
+      <div class="date-content">
+        <h1 class="page-title">date</h1>
+        <div class="year-text">${now.getFullYear()}</div>
+        <div id="calendar-wrap"></div>
+        ${renderDateDetail()}
+      </div>
+    </div>
   `;
 
   const calendarWrap = document.getElementById('calendar-wrap');
@@ -251,28 +255,51 @@ function renderTodaysWords() {
     return '<p class="empty-text">No words added today.</p>';
   }
 
-  let html = '<ol>';
-  todaysWords.forEach((word) => {
-    html += `<li>${word.text}${word.meaning ? ` - ${word.meaning}` : ''}</li>`;
+  let html = '<ol class="today-word-list">';
+  todaysWords.forEach((word, index) => {
+    html += `
+      <li class="today-word-item">
+        <span class="today-word-main">
+          <span class="today-word-number">${index + 1}.</span>
+          <span class="today-word-text">${word.text}${word.meaning ? ` - ${word.meaning}` : ''}</span>
+        </span>
+        <button class="delete-word-btn" data-id="${word.id}" aria-label="Delete word">&times;</button>
+      </li>
+    `;
   });
   html += '</ol>';
   return html;
 }
 
+function deleteWord(wordId) {
+  const storedWords = loadWordsFromStorage();
+  const nextWords = storedWords.filter((word) => word.id !== wordId);
+  words = nextWords;
+  saveWordsToStorage(nextWords);
+
+  if (activeTab === 'remember') renderRememberPage();
+  if (activeTab === 'date') renderDatePage();
+  if (activeTab === 'review') renderReviewPage();
+}
+
 function renderRememberPage() {
   pageRemember.innerHTML = `
-    <h1 class="page-title">remember words</h1>
-    <div class="remember-layout">
-      <div class="remember-left">
-        <p class="remember-text">Type the words that you want to remember</p>
-        <input id="word-input" class="input" type="text" placeholder="Word" />
-        <textarea id="meaning-input" class="textarea" placeholder="Meaning / note (optional)"></textarea>
-        <button id="add-word-btn" class="add-btn">Add Word</button>
-      </div>
-      <div class="remember-right">
-        <h2 class="list-title">today</h2>
-        <h3 class="section-title">words</h3>
-        <div id="today-words-list">${renderTodaysWords()}</div>
+    <div class="page-content remember-page-content">
+      <div class="remember-content">
+        <h1 class="page-title">remember words</h1>
+        <div class="remember-layout">
+          <div class="remember-left">
+            <p class="remember-text">Type the words that you want to remember</p>
+            <input id="word-input" class="input" type="text" placeholder="Word" />
+            <textarea id="meaning-input" class="textarea" placeholder="Meaning / note (optional)"></textarea>
+            <button id="add-word-btn" class="add-btn">Add Word</button>
+          </div>
+          <div class="remember-right">
+            <h2 class="list-title">today</h2>
+            <h3 class="section-title">words</h3>
+            <div id="today-words-list">${renderTodaysWords()}</div>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -310,6 +337,12 @@ function renderRememberPage() {
     renderRememberPage();
     if (activeTab === 'date') renderDatePage();
   });
+
+  pageRemember.querySelectorAll('.delete-word-btn').forEach((button) => {
+    button.addEventListener('click', () => {
+      deleteWord(button.dataset.id);
+    });
+  });
 }
 
 function getWordsForReviewToday() {
@@ -320,7 +353,7 @@ function getWordsForReviewToday() {
 function renderReviewWords() {
   const reviewWords = getWordsForReviewToday();
   if (reviewWords.length === 0) {
-    return '<p class="empty-text">No words to review today.</p>';
+    return '<div class="review-empty"><p class="empty-text">No words to review today.</p></div>';
   }
 
   return reviewWords
@@ -379,10 +412,14 @@ function renderReviewPage() {
   const reviewWords = getWordsForReviewToday();
 
   pageReview.innerHTML = `
-    <h1 class="page-title">review</h1>
-    <h2 class="section-title">Today's Review</h2>
-    <p>Words to review today: ${reviewWords.length}</p>
-    <div id="review-list">${renderReviewWords()}</div>
+    <div class="page-content review-page-content">
+      <div class="review-content">
+        <h1 class="page-title">review</h1>
+        <h2 class="section-title">Today's Review</h2>
+        <p>Words to review today: ${reviewWords.length}</p>
+        <div id="review-list">${renderReviewWords()}</div>
+      </div>
+    </div>
   `;
 
   pageReview.querySelectorAll('.remember-btn').forEach((button) => {
