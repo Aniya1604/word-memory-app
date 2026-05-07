@@ -410,6 +410,45 @@ body {
   align-items: center;
 }
 
+.review-toast {
+  position: fixed;
+  left: 50%;
+  top: 45%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 40px));
+  background: #fff;
+  border: 1px solid #dddddd;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+  color: #333;
+  padding: 32px 28px;
+  border-radius: 18px;
+  text-align: center;
+  line-height: 1.35;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.review-toast:hover {
+  background: #f8f8f8;
+}
+
+.review-toast-title {
+  font-size: 32px;
+  line-height: 1.2;
+  margin-bottom: 14px;
+}
+
+.review-toast-body {
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.review-toast-hint {
+  margin-top: 16px;
+  font-size: 17px;
+  color: #555;
+}
+
 @media (max-width: 900px) {
   .app-main {
     padding: 16px;
@@ -451,5 +490,19 @@ body {
   .review-page-content .empty-text,
   .review-page-content .review-card {
     font-size: 17px;
+  }
+
+  .review-toast {
+    top: 42%;
+    width: min(460px, calc(100vw - 24px));
+    padding: 26px 20px;
+  }
+
+  .review-toast-title {
+    font-size: 28px;
+  }
+
+  .review-toast-body {
+    font-size: 21px;
   }
 }

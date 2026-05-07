@@ -29,6 +29,8 @@ let words = loadWordsFromStorage();
 let activeTab = 'date';
 let currentMonthDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let selectedDate = null;
+let hasShownReviewToast = false;
+let hasBoundFirstInteractionForToast = false;
 
 const pageDate = document.getElementById('page-date');
 const pageRemember = document.getElementById('page-remember');
@@ -364,6 +366,73 @@ function getWordsForReviewToday() {
   return words.filter((word) => word.status !== 'mastered' && new Date(word.nextReviewAt).getTime() <= nowMs);
 }
 
+function getDueReviewWords() {
+  return getWordsForReviewToday();
+}
+
+function hideReviewToast() {
+  const toast = document.getElementById('review-toast');
+  if (toast) toast.remove();
+}
+
+function showReviewToast() {
+  if (hasShownReviewToast) return;
+  hasShownReviewToast = true;
+
+  hideReviewToast();
+
+  const dueWords = getDueReviewWords();
+  const dueCount = dueWords.length;
+
+  const toast = document.createElement('div');
+  toast.id = 'review-toast';
+  toast.className = 'review-toast';
+  toast.title = 'Go to review';
+  toast.setAttribute('role', 'button');
+  toast.setAttribute('tabindex', '0');
+  toast.setAttribute('aria-label', 'Open review page');
+  toast.innerHTML = dueCount > 0
+    ? `
+      <div class="review-toast-title">Hello!</div>
+      <div class="review-toast-body">You have ${dueCount} words to review.</div>
+      <div class="review-toast-hint">Click here to start.</div>
+    `
+    : `
+      <div class="review-toast-title">Hello!</div>
+      <div class="review-toast-body">You have no words to review right now.</div>
+    `;
+
+  const openReview = () => {
+    switchTab('review');
+    hideReviewToast();
+  };
+
+  toast.addEventListener('click', openReview);
+  toast.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openReview();
+    }
+  });
+
+  document.body.appendChild(toast);
+}
+
+function initReviewToast() {
+  setTimeout(() => {
+    showReviewToast();
+  }, 700);
+
+  if (hasBoundFirstInteractionForToast) return;
+  hasBoundFirstInteractionForToast = true;
+
+  const showOnFirstInteraction = () => {
+    showReviewToast();
+  };
+
+  document.addEventListener('click', showOnFirstInteraction, { once: true });
+}
+
 function renderReviewWords() {
   const reviewWords = getWordsForReviewToday();
   if (reviewWords.length === 0) {
@@ -476,6 +545,7 @@ function initNav() {
 function initApp() {
   initNav();
   switchTab('date');
+  initReviewToast();
 }
 
 initApp();
