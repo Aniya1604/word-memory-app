@@ -400,18 +400,23 @@ function showReviewToast() {
     : `
       <div class="review-toast-title">Hello!</div>
       <div class="review-toast-body">You have no words to review right now.</div>
+      <div class="review-toast-hint">Click here to add words.</div>
     `;
 
-  const openReview = () => {
-    switchTab('review');
+  const openTargetPage = () => {
+    if (dueCount > 0) {
+      switchTab('review');
+    } else {
+      switchTab('remember');
+    }
     hideReviewToast();
   };
 
-  toast.addEventListener('click', openReview);
+  toast.addEventListener('click', openTargetPage);
   toast.addEventListener('keydown', (event) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      openReview();
+      openTargetPage();
     }
   });
 
