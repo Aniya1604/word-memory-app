@@ -1,14 +1,15 @@
 const STORAGE_KEY = 'wordMemoryApp_words';
-const REVIEW_INTERVALS_MS = [
-  5 * 60 * 1000,
-  30 * 60 * 1000,
-  12 * 60 * 60 * 1000,
-  24 * 60 * 60 * 1000,
-  2 * 24 * 60 * 60 * 1000,
-  4 * 24 * 60 * 60 * 1000,
-  7 * 24 * 60 * 60 * 1000,
-  15 * 24 * 60 * 60 * 1000,
-  30 * 24 * 60 * 60 * 1000,
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+const REVIEW_STAGES = [
+  { key: '1h', label: '1 hour', offsetMs: HOUR_MS },
+  { key: '12h', label: '12 hours', offsetMs: 12 * HOUR_MS },
+  { key: '1d', label: '1 day', offsetMs: DAY_MS },
+  { key: '2d', label: '2 days', offsetMs: 2 * DAY_MS },
+  { key: '4d', label: '4 days', offsetMs: 4 * DAY_MS },
+  { key: '7d', label: '7 days', offsetMs: 7 * DAY_MS },
+  { key: '15d', label: '15 days', offsetMs: 15 * DAY_MS },
+  { key: '30d', label: '30 days', offsetMs: 30 * DAY_MS },
 ];
 const MONTH_LABELS = [
   'January',
@@ -68,29 +69,103 @@ function saveWordsToStorage(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function addDays(dateString, days) {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const d = new Date(year, month - 1, day);
-  d.setDate(d.getDate() + days);
-  return formatDateToYMD(d);
-}
-
 function calculateNextReviewAtFromCreated(createdAtISO, stageIndex) {
   const createdAt = new Date(createdAtISO);
-  const next = new Date(createdAt.getTime() + REVIEW_INTERVALS_MS[stageIndex]);
+  const stage = REVIEW_STAGES[stageIndex] || REVIEW_STAGES[REVIEW_STAGES.length - 1];
+  const next = new Date(createdAt.getTime() + stage.offsetMs);
   return next.toISOString();
 }
 
-function calculateFiveMinutesFromNowISO() {
-  const next = new Date(Date.now() + REVIEW_INTERVALS_MS[0]);
+function calculateOneHourFromNowISO() {
+  const next = new Date(Date.now() + HOUR_MS);
   return next.toISOString();
+}
+
+function getCompletedReviewStageKeys(word) {
+  const completed = new Set();
+  const legacyStageCount = Number.isInteger(word.reviewStage)
+    ? Math.min(Math.max(word.reviewStage, 0), REVIEW_STAGES.length)
+    : 0;
+
+  for (let index = 0; index < legacyStageCount; index += 1) {
+    completed.add(REVIEW_STAGES[index].key);
+  }
+
+  (word.reviewHistory || []).forEach((record) => {
+    if (Array.isArray(record.completedStages)) {
+      record.completedStages.forEach((stageKey) => completed.add(stageKey));
+      return;
+    }
+
+    if (Number.isInteger(record.completedStage)) {
+      const stage = REVIEW_STAGES[record.completedStage];
+      if (stage) completed.add(stage.key);
+    }
+  });
+  return completed;
+}
+
+function getDueUncompletedReviewStages(word, nowMs = Date.now()) {
+  const createdAtMs = new Date(word.createdAt).getTime();
+  if (!Number.isFinite(createdAtMs)) return [];
+
+  const completed = getCompletedReviewStageKeys(word);
+  return REVIEW_STAGES.filter((stage) => (
+    createdAtMs + stage.offsetMs <= nowMs && !completed.has(stage.key)
+  ));
+}
+
+function getNextFutureReviewStage(word, nowMs = Date.now()) {
+  const createdAtMs = new Date(word.createdAt).getTime();
+  if (!Number.isFinite(createdAtMs)) return null;
+
+  const completed = getCompletedReviewStageKeys(word);
+  return REVIEW_STAGES.find((stage) => (
+    createdAtMs + stage.offsetMs > nowMs && !completed.has(stage.key)
+  )) || null;
+}
+
+function getNextFutureReviewAt(word, nowMs = Date.now()) {
+  const createdAtMs = new Date(word.createdAt).getTime();
+  const nextStage = getNextFutureReviewStage(word, nowMs);
+  if (!nextStage || !Number.isFinite(createdAtMs)) return '';
+  return new Date(createdAtMs + nextStage.offsetMs).toISOString();
+}
+
+function getReviewStageIndexFromHistory(word) {
+  const completed = getCompletedReviewStageKeys(word);
+  const firstUncompletedIndex = REVIEW_STAGES.findIndex((stage) => !completed.has(stage.key));
+  return firstUncompletedIndex === -1 ? REVIEW_STAGES.length : firstUncompletedIndex;
+}
+
+function getReviewInfo(word, nowMs = Date.now()) {
+  const retryDue = (
+    word.status !== 'mastered'
+    && word.nextReviewAt
+    && word.reviewRetry
+    && new Date(word.nextReviewAt).getTime() <= nowMs
+  );
+  const dueStages = getDueUncompletedReviewStages(word, nowMs);
+
+  return {
+    dueStages,
+    isDue: word.status !== 'mastered' && (retryDue || dueStages.length > 0),
+    nextFutureStage: getNextFutureReviewStage(word, nowMs),
+    retryDue,
+  };
 }
 
 function normalizeWord(word) {
   const safeWord = { ...word };
   const createdDate = safeWord.createdDate || getTodayDateString();
   const createdAt = safeWord.createdAt || new Date(`${createdDate}T00:00:00`).toISOString();
-  const reviewStage = Number.isInteger(safeWord.reviewStage) ? safeWord.reviewStage : 0;
+  const reviewHistory = Array.isArray(safeWord.reviewHistory) ? safeWord.reviewHistory : [];
+  const normalizedBase = {
+    ...safeWord,
+    createdAt,
+    reviewHistory,
+  };
+  const reviewStage = getReviewStageIndexFromHistory(normalizedBase);
 
   let nextReviewAt = safeWord.nextReviewAt;
 
@@ -99,7 +174,7 @@ function normalizeWord(word) {
   }
 
   if (!nextReviewAt) {
-    nextReviewAt = calculateNextReviewAtFromCreated(createdAt, Math.min(reviewStage, REVIEW_INTERVALS_MS.length - 1));
+    nextReviewAt = getNextFutureReviewAt(normalizedBase) || '';
   }
 
   return {
@@ -111,7 +186,8 @@ function normalizeWord(word) {
     reviewStage,
     nextReviewAt,
     status: safeWord.status || 'learning',
-    reviewHistory: Array.isArray(safeWord.reviewHistory) ? safeWord.reviewHistory : [],
+    reviewRetry: Boolean(safeWord.reviewRetry),
+    reviewHistory,
   };
 }
 
@@ -341,6 +417,7 @@ function renderRememberPage() {
       reviewStage: 0,
       nextReviewAt: calculateNextReviewAtFromCreated(createdAt, 0),
       status: 'learning',
+      reviewRetry: false,
       reviewHistory: [],
     };
 
@@ -363,7 +440,7 @@ function renderRememberPage() {
 
 function getWordsForReviewToday() {
   const nowMs = Date.now();
-  return words.filter((word) => word.status !== 'mastered' && new Date(word.nextReviewAt).getTime() <= nowMs);
+  return words.filter((word) => getReviewInfo(word, nowMs).isDue);
 }
 
 function getDueReviewWords() {
@@ -445,20 +522,25 @@ function renderReviewWords() {
   }
 
   return reviewWords
-    .map(
-      (word) => `
+    .map((word) => {
+      const reviewInfo = getReviewInfo(word);
+      const stageLabel = reviewInfo.retryDue
+        ? 'forgot retry'
+        : reviewInfo.dueStages.map((stage) => stage.label).join(', ');
+
+      return `
       <div class="review-card" data-id="${word.id}">
         <div><strong>${word.text}</strong></div>
         ${word.meaning ? `<div>${word.meaning}</div>` : ''}
         <div>added date: ${word.createdDate}</div>
-        <div>current review stage: ${word.reviewStage + 1}</div>
+        <div>current review stage: ${stageLabel}</div>
         <div class="review-buttons">
           <button class="review-btn remember-btn" data-id="${word.id}">I remember</button>
           <button class="review-btn forgot-btn" data-id="${word.id}">I forgot</button>
         </div>
       </div>
-    `,
-    )
+    `;
+    })
     .join('');
 }
 
@@ -469,25 +551,35 @@ function handleReviewAction(wordId, remembered) {
 
   const current = words[idx];
   const updated = { ...current };
+  const dueStages = getDueUncompletedReviewStages(updated);
+  const completedStages = dueStages.map((stage) => stage.key);
 
   updated.reviewHistory = [
     ...updated.reviewHistory,
-    { datetime: nowIso, result: remembered ? 'remembered' : 'forgot' },
+    {
+      reviewedAt: nowIso,
+      datetime: nowIso,
+      result: remembered ? 'remembered' : 'forgot',
+      completedStages,
+    },
   ];
+  updated.reviewRetry = false;
 
   if (remembered) {
-    const nextStage = updated.reviewStage + 1;
-    if (nextStage >= REVIEW_INTERVALS_MS.length) {
-      updated.reviewStage = REVIEW_INTERVALS_MS.length;
+    const nextReviewAt = getNextFutureReviewAt(updated);
+    updated.reviewStage = getReviewStageIndexFromHistory(updated);
+
+    if (!nextReviewAt) {
       updated.status = 'mastered';
       updated.nextReviewAt = '';
     } else {
-      updated.reviewStage = nextStage;
-      updated.nextReviewAt = calculateNextReviewAtFromCreated(updated.createdAt, nextStage);
+      updated.nextReviewAt = nextReviewAt;
       updated.status = 'learning';
     }
   } else {
-    updated.nextReviewAt = calculateFiveMinutesFromNowISO();
+    updated.reviewStage = getReviewStageIndexFromHistory(updated);
+    updated.nextReviewAt = calculateOneHourFromNowISO();
+    updated.reviewRetry = true;
     updated.status = 'learning';
   }
 
